@@ -1,3 +1,15 @@
+/**
+ * PRODUCTION-READY script.js
+ * Optimized for Vercel Static Deployment & Supabase Browser SDK
+ */
+
+// --- Supabase Configuration ---
+const SUPABASE_URL = "https://zjrdzexqwbormxiypexm.supabase.co"; // Replace with YOUR_PROJECT_ID if changed
+const SUPABASE_ANON_KEY = "sb_publishable_O_mO9jNerh5HB2KTh-TNhA_bNQ6wmKX"; // Replace with YOUR_ANON_KEY
+
+// Initialize Supabase Client
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- Elements ---
     const form = document.getElementById('registration-form');
@@ -11,15 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const previewCard = document.getElementById('preview-card');
     const previewDataContainer = document.getElementById('preview-data');
     const editBtn = document.getElementById('edit-btn');
-    const resetBtn = document.getElementById('reset-btn');
     const submitBtn = document.getElementById('submit-btn');
-
-    // --- Supabase Configuration (Using Existing Config) ---
-    const SUPABASE_URL = 'https://zjrdzexqwbormxiypexm.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_O_mO9jNerh5HB2KTh-TNhA_bNQ6wmKX';
-    
-    // Initialize Supabase Client
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // --- Theme Logic ---
     const savedTheme = localStorage.getItem('theme') || 'light';
@@ -46,36 +50,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- File Input Display ---
     fileInput.addEventListener('change', (e) => {
-        const fileName = e.target.files[0] ? e.target.files[0].name : 'No file chosen';
-        fileNameDisplay.textContent = fileName;
+        const file = e.target.files[0];
+        if (file) {
+            fileNameDisplay.textContent = `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+            fileNameDisplay.style.color = "var(--primary)";
+        } else {
+            fileNameDisplay.textContent = 'No file selected';
+            fileNameDisplay.style.color = "inherit";
+        }
     });
 
-    // --- Validation Logic ---
-    const validateEmail = (email) => {
-        return String(email)
-            .toLowerCase()
-            .match(/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/);
-    };
-
-    const validateForm = (data, file) => {
-        if (!data.full_name || !data.email || !data.phone || !data.date_of_birth || !data.gender || !data.address || !file) {
-            alert("All fields are required. Please fill everything and upload a file.");
-            return false;
-        }
-        if (!validateEmail(data.email)) {
-            alert("Please enter a valid email address.");
-            return false;
-        }
-        return true;
-    };
-
-    // --- Submit Logic (MODIFIED) ---
+    // --- Submit Logic ---
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
         // 1. Capture Values
-        const formData = {
-            full_name: document.getElementById("name").value.trim(),
+        const payload = {
+            full_name: document.getElementById("full_name").value.trim(),
             email: document.getElementById("email").value.trim(),
             phone: document.getElementById("phone").value.trim(),
             date_of_birth: document.getElementById("date_of_birth").value,
@@ -84,59 +75,64 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         const file = fileInput.files[0];
 
-        // 2. Validate Inputs
-        if (!validateForm(formData, file)) return;
-
-        // 3. UI Improvements: Show "Submitting..." and Disable button
-        const originalText = submitBtn.textContent;
-        submitBtn.textContent = 'Submitting...';
+        // 2. UX: Disable button & show "Processing..."
+        const originalBtnText = submitBtn.textContent;
         submitBtn.disabled = true;
+        submitBtn.textContent = 'Processing...';
 
         try {
-            // 4. Upload File to Supabase Storage
-            const filePath = `public/${Date.now()}_${file.name}`;
+            // 3. File Upload to Supabase Storage (Bucket: 'documents')
+            console.log("Uploading file...");
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+            const filePath = `uploads/${fileName}`;
+
             const { data: uploadData, error: uploadError } = await supabase.storage
                 .from('documents')
                 .upload(filePath, file);
 
             if (uploadError) {
-                console.error("UPLOAD ERROR:", uploadError);
-                alert("Upload failed: " + uploadError.message);
-                return; // Stop execution if upload fails
+                console.error("Upload Error:", uploadError);
+                alert(`Upload failed: ${uploadError.message}. Make sure 'documents' bucket exists and is public.`);
+                throw uploadError;
             }
 
-            // 5. Get Public URL (Requirement)
-            const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(filePath);
+            // 4. Get Public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('documents')
+                .getPublicUrl(filePath);
 
-            // 6. Insert Form Data into Supabase Table
+            const file_url = publicUrl;
+            console.log("File uploaded successfully. URL:", file_url);
+
+            // 5. Insert into Database (Table: 'submissions')
+            const finalPayload = { ...payload, file_url };
+            console.log("Insert payload:", finalPayload);
+
             const { data: insertData, error: insertError } = await supabase
                 .from('submissions')
-                .insert([{
-                    ...formData,
-                    file_url: publicUrl
-                }]);
+                .insert([finalPayload]);
 
             if (insertError) {
-                console.error("INSERT ERROR:", insertError);
-                alert("Insert failed: " + insertError.message);
-                return; // Stop if insert fails
+                console.error("Database Insert Error:", insertError);
+                alert(`Insert failed: ${insertError.message}`);
+                throw insertError;
             }
 
-            // 7. UX Improvements: Success message and Reset form
+            // 6. Success Handling
+            console.log("Submission successful!");
             alert("Success! Your application has been submitted.");
-            form.reset();
-            fileNameDisplay.textContent = 'No file chosen';
             
-            // Optional: Show preview or success state
-            showPreview({ ...formData, file_url: publicUrl });
+            form.reset();
+            fileNameDisplay.textContent = 'No file selected';
+            showPreview(finalPayload);
 
         } catch (err) {
-            console.error("UNEXPECTED ERROR:", err);
-            alert("An unexpected error occurred. Check console for details.");
+            console.error("CRITICAL FLOW ERROR:", err);
         } finally {
             // Re-enable button
-            submitBtn.textContent = originalText;
             submitBtn.disabled = false;
+            submitBtn.textContent = originalBtnText;
         }
     });
 
@@ -149,19 +145,25 @@ document.addEventListener('DOMContentLoaded', () => {
             date_of_birth: 'Date of Birth',
             gender: 'Gender',
             address: 'Address',
-            file_url: 'Document'
+            file_url: 'Uploaded Document'
         };
 
         Object.keys(labels).forEach(key => {
             const item = document.createElement('div');
             item.className = 'preview-item';
-            const value = key === 'file_url' ? `<a href="${data[key]}" target="_blank" class="view-link">View Uploaded File</a>` : data[key];
+            const value = key === 'file_url' 
+                ? `<a href="${data[key]}" target="_blank" class="view-link">View Document <i data-lucide="external-link" style="width:14px"></i></a>` 
+                : data[key];
+            
             item.innerHTML = `
                 <span class="preview-label">${labels[key]}</span>
                 <span class="preview-value">${value}</span>
             `;
             previewDataContainer.appendChild(item);
         });
+
+        // Re-initialize icons for the injected HTML
+        lucide.createIcons();
 
         formCard.style.display = 'none';
         previewCard.style.display = 'block';
@@ -171,12 +173,6 @@ document.addEventListener('DOMContentLoaded', () => {
     editBtn.addEventListener('click', () => {
         previewCard.style.display = 'none';
         formCard.style.display = 'block';
-    });
-
-    // --- Reset Logic ---
-    resetBtn.addEventListener('click', () => {
-        fileNameDisplay.textContent = 'No file chosen';
-        const errors = document.querySelectorAll('.error-msg');
-        errors.forEach(e => e.textContent = '');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 });

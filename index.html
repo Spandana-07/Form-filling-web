@@ -3,21 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="A modern, responsive form filling website with Supabase integration.">
-    <title>Modern Form Filling Service</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="description" content="Production-ready form with Supabase integration and modern UI.">
+    <title>Modern Form | Supabase Static</title>
+    
+    <!-- Relative CSS Link -->
+    <link rel="stylesheet" href="./style.css">
+    
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Supabase JS Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Relative Script Link with Defer -->
+    <script src="./script.js" defer></script>
 </head>
 <body class="light-mode">
     <div class="background-blob"></div>
     <div class="container">
         <header>
-            <h1>Registration Form</h1>
+            <div class="logo-area">
+                <h1>Registration Portal</h1>
+                <p class="subtitle">Complete your application securely</p>
+            </div>
             <button id="theme-toggle" class="icon-btn" aria-label="Toggle Dark Mode">
                 <i data-lucide="sun" id="sun-icon"></i>
                 <i data-lucide="moon" id="moon-icon" style="display: none;"></i>
@@ -25,24 +36,22 @@
         </header>
 
         <main>
+            <!-- Form Card -->
             <div id="form-card" class="card">
-                <form id="registration-form" novalidate>
+                <form id="registration-form">
                     <div class="form-group">
-                        <label for="name">Full Name</label>
-                        <input type="text" id="name" name="name" placeholder="John Doe" required>
-                        <span class="error-msg" id="name-error"></span>
+                        <label for="full_name">Full Name</label>
+                        <input type="text" id="full_name" name="full_name" placeholder="John Doe" required>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
                             <label for="email">Email Address</label>
                             <input type="email" id="email" name="email" placeholder="john@example.com" required>
-                            <span class="error-msg" id="email-error"></span>
                         </div>
                         <div class="form-group">
                             <label for="phone">Phone Number</label>
                             <input type="tel" id="phone" name="phone" placeholder="1234567890" required>
-                            <span class="error-msg" id="phone-error"></span>
                         </div>
                     </div>
 
@@ -50,7 +59,6 @@
                         <div class="form-group">
                             <label for="date_of_birth">Date of Birth</label>
                             <input type="date" id="date_of_birth" name="date_of_birth" required>
-                            <span class="error-msg" id="date_of_birth-error"></span>
                         </div>
                         <div class="form-group">
                             <label for="gender">Gender</label>
@@ -60,22 +68,25 @@
                                 <option value="female">Female</option>
                                 <option value="other">Other</option>
                             </select>
-                            <span class="error-msg" id="gender-error"></span>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="address">Address</label>
-                        <textarea id="address" name="address" rows="3" placeholder="Enter your full address" required></textarea>
-                        <span class="error-msg" id="address-error"></span>
+                        <label for="address">Full Address</label>
+                        <textarea id="address" name="address" rows="3" placeholder="Enter your full residential address" required></textarea>
                     </div>
 
                     <div class="form-group">
-                        <label for="file" class="custom-file-upload">
-                            <i data-lucide="upload"></i> Upload Documents
-                        </label>
-                        <input id="file" type="file" name="file" required />
-                        <span id="file-name" class="file-info">No file chosen</span>
+                        <label class="file-label">Supporting Document</label>
+                        <div class="upload-container">
+                            <label for="file" class="custom-file-upload">
+                                <i data-lucide="upload-cloud"></i>
+                                <span>Click to upload or drag and drop</span>
+                                <small>PDF, JPG, PNG (Max 5MB)</small>
+                            </label>
+                            <input id="file" type="file" name="file" required />
+                            <div id="file-name" class="file-info">No file selected</div>
+                        </div>
                     </div>
 
                     <div class="button-group">
@@ -85,31 +96,33 @@
                 </form>
             </div>
 
+            <!-- Success Card -->
             <div id="preview-card" class="card" style="display: none;">
                 <div class="success-banner">
-                    <i data-lucide="check-circle" class="success-icon"></i>
-                    <h2>Submission Successful!</h2>
-                    <p>Your data has been saved to Supabase.</p>
+                    <div class="success-icon-wrap">
+                        <i data-lucide="check-circle" class="success-icon"></i>
+                    </div>
+                    <h2>Application Received!</h2>
+                    <p>Your details have been successfully saved.</p>
                 </div>
                 
                 <div class="preview-content" id="preview-data">
                     <!-- Data will be injected here by JS -->
                 </div>
 
-                <div class="button-group">
-                    <button id="edit-btn" class="btn-secondary">New Application</button>
-                    <button id="download-btn" class="btn-primary">Download Summary</button>
+                <div class="button-group single">
+                    <button id="edit-btn" class="btn-primary">Submit Another Response</button>
                 </div>
             </div>
         </main>
 
         <footer>
-            <p>&copy; 2026 Modern Form Service. All rights reserved.</p>
+            <p>&copy; 2026 Modern Form Service. Secured by Supabase.</p>
         </footer>
     </div>
 
-    <script src="script.js"></script>
     <script>
+        // Initialize Lucide icons immediately for better UX
         lucide.createIcons();
     </script>
 </body>
